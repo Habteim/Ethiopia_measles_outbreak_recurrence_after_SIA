@@ -9,13 +9,14 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(naniar)
+library(here)
 
 #=========================================================
 # Load data
 #=========================================================
-
-birth_ri <- read_csv(
-  "/Users/apple/Desktop/SKKU postdoc fellowship/SKKU research/Time to measles outbreak recurrence after SIAs in Ethiopia/combined_epi_time_series_complete.csv")
+setwd("/Users/apple/Desktop/SKKU postdoc fellowship/SKKU research")
+birth_ri <- read_csv(here(
+  "Time to measles recurrence after SIA", "combined_epi_time_series_complete.csv"))
 
 #=========================================================
 # Initial inspection

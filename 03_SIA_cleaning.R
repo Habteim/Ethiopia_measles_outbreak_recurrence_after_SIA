@@ -6,13 +6,14 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(here)
 
 #=========================================================
 # Load data
 #=========================================================
 
-sia <- read_csv(
-  "SIA_calendar_by_state.csv")
+sia <- read_csv(here(
+  "Time to measles recurrence after SIA","SIA_calendar_by_state.csv"))
 
 #=========================================================
 # Initial inspection
