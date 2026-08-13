@@ -2,3 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+data/
+output/
+outputs/
+*.csv
+*.xlsx
+*.rds
