@@ -25,8 +25,7 @@ library(scales)
 setwd("~/Desktop/SKKU postdoc fellowship/SKKU research/Time to measles recurrence after SIA/")
 
 measles_raw <- read_csv(
-  "ETH_MR_linelist_SACEMA_export_2025_mod.csv"
-)
+  "/Users/apple/Desktop/SKKU_postdoc_fellowship/SKKU_research/Time to measles recurrence after SIA/ETH_MR_linelist_SACEMA_export_2025_mod.csv")
 
 # Preserve untouched raw dataset
 measles_data <- measles_raw
