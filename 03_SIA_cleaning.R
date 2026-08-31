@@ -12,8 +12,7 @@ library(here)
 # Load data
 #=========================================================
 
-sia <- read_csv(here(
-  "Time to measles recurrence after SIA","SIA_calendar_by_state.csv"))
+sia <- read_csv("/Users/apple/Desktop/SKKU_postdoc_fellowship/SKKU_research/Time to measles recurrence after SIA/SIA_calendar_by_state.csv")
 
 #=========================================================
 # Initial inspection

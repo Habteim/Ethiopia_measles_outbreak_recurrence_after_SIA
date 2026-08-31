@@ -14,9 +14,9 @@ library(here)
 #=========================================================
 # Load data
 #=========================================================
-setwd("/Users/apple/Desktop/SKKU postdoc fellowship/SKKU research")
-birth_ri <- read_csv(here(
-  "Time to measles recurrence after SIA", "combined_epi_time_series_complete.csv"))
+
+birth_ri <- read_csv("/Users/apple/Desktop/SKKU_postdoc_fellowship/SKKU_research/Time to measles recurrence after SIA/combined_epi_time_series_complete.csv")
+
 
 #=========================================================
 # Initial inspection
