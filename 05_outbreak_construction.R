@@ -11,14 +11,6 @@ library(remotes)
 library(ISOweek)
 
 #=========================================================
-# 05_outbreak_construction.R
-# Construct measles outbreak episodes
-#=========================================================
-
-library(tidyverse)
-library(lubridate)
-
-#=========================================================
 # User-defined parameters
 #=========================================================
 
@@ -240,6 +232,7 @@ print(
     ) %>%
     head(10)
 )
+
 
 #=========================================================
 # Largest outbreaks

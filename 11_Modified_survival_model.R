@@ -176,7 +176,7 @@ cor.test(
 # Correlation among candidate covariates
 #=========================================================
 
-candidate_covariates <- analytic_data %>%
+candidate_covariates <- analytic_surv %>%
   
   select(
     
@@ -433,6 +433,24 @@ print(ggsurvplot(
 
 # 3. Turn the device off to finalize the file
 dev.off()
+
+
+#Explicit log rank test 
+logrank_previous <- survdiff(
+  
+  Surv(time, event) ~
+    region_type,
+  
+  data = analytic_surv
+)
+
+print(logrank_previous)
+
+
+#Median survival by exposure group 
+surv_median(
+  km_region
+)
 
 
 #Standard cox proportional hazards model: sensitivity 
