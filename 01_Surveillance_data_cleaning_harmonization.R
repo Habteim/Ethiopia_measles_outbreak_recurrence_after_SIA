@@ -22,7 +22,7 @@ library(scales)
 # 2. IMPORT DATA
 # =========================================================
 
-setwd("~/Desktop/SKKU postdoc fellowship/SKKU research/Time to measles recurrence after SIA/")
+#setwd("~/Desktop/SKKU postdoc fellowship/SKKU research/Time to measles recurrence after SIA/")
 
 measles_raw <- read_csv(
   "/Users/apple/Desktop/SKKU_postdoc_fellowship/SKKU_research/Time to measles recurrence after SIA/ETH_MR_linelist_SACEMA_export_2025_mod.csv")
