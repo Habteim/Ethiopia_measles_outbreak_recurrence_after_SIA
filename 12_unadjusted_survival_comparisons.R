@@ -309,7 +309,7 @@ run_km_comparison <- function(
         logrank_fit,
       
       p_value =
-        p_value,
+        p_label,
       
       plot =
         km_plot
