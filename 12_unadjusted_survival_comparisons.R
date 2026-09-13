@@ -135,6 +135,25 @@ run_km_comparison <- function(
       
     )
   
+  #=======================================================
+  # Format p-value for plot
+  #=======================================================
+  
+  p_label <-
+    
+    if (p_value < 0.001) {
+      
+      "p < 0.001"
+      
+    } else {
+      
+      paste0(
+        "p = ",
+        sprintf("%.3f", p_value)
+      )
+      
+    }
+  
   
   #=======================================================
   # Print results
@@ -188,10 +207,10 @@ run_km_comparison <- function(
         TRUE,
       
       conf.int =
-        FALSE,
+        TRUE,
       
       pval =
-        TRUE,
+        p_label,
       
       xlab =
         "Days after supplementary immunization activity",
