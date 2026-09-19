@@ -816,3 +816,140 @@ saveRDS(
   "sia_outcomes.rds"
   
 )
+
+
+
+
+
+
+
+
+
+
+#=========================================================
+# SENSITIVITY ANALYSIS:
+# ALTERNATIVE POST-SIA WASHOUT PERIODS
+#
+# Compare:
+# 28 days = 4 weeks
+# 42 days = 6 weeks (primary analysis)
+# 56 days = 8 weeks
+#=========================================================
+
+calculate_post_sia_outcomes <- function(washout_days) {
+  
+  temp_post_sia <- sia_analysis %>%
+    left_join(
+      outbreaks,
+      by = "admin1"
+    )
+  
+  temp_future <- temp_post_sia %>%
+    filter(
+      outbreak_start >
+        end_date + days(washout_days),
+      
+      # Outbreak must occur before the next SIA
+      is.na(next_sia_start_date) |
+        outbreak_start < next_sia_start_date,
+      
+      # Outbreak must occur within surveillance period
+      outbreak_start <= SURVEILLANCE_END_DATE
+    )
+  
+  temp_next_outbreak <- temp_future %>%
+    group_by(
+      admin1,
+      start_date,
+      end_date
+    ) %>%
+    slice_min(
+      outbreak_start,
+      n = 1,
+      with_ties = FALSE
+    ) %>%
+    ungroup() %>%
+    mutate(
+      time_to_next_outbreak_days =
+        as.numeric(outbreak_start - end_date),
+      
+      outbreak_after_sia = 1
+    )
+  
+  temp_outcomes <- sia_analysis %>%
+    left_join(
+      temp_next_outbreak %>%
+        select(
+          admin1,
+          start_date,
+          end_date,
+          outbreak_start,
+          time_to_next_outbreak_days,
+          outbreak_after_sia
+        ),
+      by = c(
+        "admin1",
+        "start_date",
+        "end_date"
+      )
+    ) %>%
+    mutate(
+      outbreak_after_sia =
+        replace_na(
+          outbreak_after_sia,
+          0
+        )
+    )
+  
+  return(temp_outcomes)
+}
+
+
+washout_28_days <- calculate_post_sia_outcomes(28)
+
+washout_42_days <- calculate_post_sia_outcomes(42)
+
+washout_56_days <- calculate_post_sia_outcomes(56)
+
+c(
+  washout_28 = sum(washout_28_days$outbreak_after_sia, na.rm = TRUE),
+  washout_42 = sum(washout_42_days$outbreak_after_sia, na.rm = TRUE),
+  washout_56 = sum(washout_56_days$outbreak_after_sia, na.rm = TRUE)
+)
+
+
+table(washout_42_days$outbreak_after_sia)
+
+
+median(
+  washout_42_days$time_to_next_outbreak_days[
+    washout_42_days$outbreak_after_sia == 1
+  ],
+  na.rm = TRUE
+)
+
+
+median_times <- c(
+  washout_28 = median(
+    washout_28_days$time_to_next_outbreak_days[
+      washout_28_days$outbreak_after_sia == 1
+    ],
+    na.rm = TRUE
+  ),
+  
+  washout_42 = median(
+    washout_42_days$time_to_next_outbreak_days[
+      washout_42_days$outbreak_after_sia == 1
+    ],
+    na.rm = TRUE
+  ),
+  
+  washout_56 = median(
+    washout_56_days$time_to_next_outbreak_days[
+      washout_56_days$outbreak_after_sia == 1
+    ],
+    na.rm = TRUE
+  )
+)
+
+median_times
