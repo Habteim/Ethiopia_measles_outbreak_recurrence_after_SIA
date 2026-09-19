@@ -322,3 +322,547 @@ oromia_cases <- weekly_cases %>%
     week_start <= as.Date("2024-12-31")
   ) %>%
   select(week_start, cases)
+
+
+
+#=========================================================
+# 05a_outbreak_definition_sensitivity.R
+# Sensitivity analysis for outbreak construction
+#=========================================================
+
+library(tidyverse)
+library(lubridate)
+
+#=========================================================
+# Confirmed measles cases
+#=========================================================
+
+confirmed_cases <- measles_data %>%
+  
+  filter(
+    confirmed_measles == 1
+  )
+
+
+#=========================================================
+# Weekly case counts
+#=========================================================
+
+weekly_cases_base <- confirmed_cases %>%
+  
+  mutate(
+    
+    week_start =
+      floor_date(
+        date_onset,
+        unit = "week",
+        week_start = 1
+      )
+    
+  ) %>%
+  
+  count(
+    
+    admin1,
+    week_start,
+    
+    name = "cases"
+    
+  ) %>%
+  
+  group_by(
+    admin1
+  ) %>%
+  
+  complete(
+    
+    week_start =
+      seq(
+        min(week_start),
+        max(week_start),
+        by = "week"
+      ),
+    
+    fill =
+      list(
+        cases = 0
+      )
+    
+  ) %>%
+  
+  ungroup()
+
+
+#=========================================================
+# Function to construct outbreak episodes
+#=========================================================
+
+construct_outbreaks <- function(
+    
+  weekly_data,
+  outbreak_threshold = 5,
+  separation_weeks = 2
+  
+) {
+  
+  
+  #=======================================================
+  # Define outbreak activity
+  #=======================================================
+  
+  outbreak_data <-
+    
+    weekly_data %>%
+    
+    arrange(
+      admin1,
+      week_start
+    ) %>%
+    
+    group_by(
+      admin1
+    ) %>%
+    
+    mutate(
+      
+      outbreak_week =
+        cases >= outbreak_threshold,
+      
+      below_threshold =
+        cases < outbreak_threshold
+      
+    )
+  
+  
+  #=======================================================
+  # Identify whether preceding weeks
+  # were below the threshold
+  #=======================================================
+  
+  for (
+    
+    i in seq_len(
+      separation_weeks
+    )
+    
+  ) {
+    
+    outbreak_data <-
+      
+      outbreak_data %>%
+      
+      mutate(
+        
+        !!paste0(
+          "below_",
+          i,
+          "_week_before"
+        ) :=
+          
+          lag(
+            below_threshold,
+            i,
+            default = TRUE
+          )
+        
+      )
+    
+  }
+  
+  
+  #=======================================================
+  # Identify outbreak starts
+  #=======================================================
+  
+  separation_columns <-
+    
+    paste0(
+      "below_",
+      seq_len(
+        separation_weeks
+      ),
+      "_week_before"
+    )
+  
+  
+  outbreak_data <-
+    
+    outbreak_data %>%
+    
+    rowwise() %>%
+    
+    mutate(
+      
+      sufficient_separation =
+        
+        all(
+          c_across(
+            all_of(
+              separation_columns
+            )
+          )
+        ),
+      
+      outbreak_start =
+        
+        outbreak_week &
+        sufficient_separation
+      
+    ) %>%
+    
+    ungroup() %>%
+    
+    group_by(
+      admin1
+    ) %>%
+    
+    mutate(
+      
+      outbreak_id =
+        cumsum(
+          outbreak_start
+        )
+      
+    ) %>%
+    
+    ungroup()
+  
+  
+  #=======================================================
+  # Retain outbreak activity weeks
+  #=======================================================
+  
+  outbreak_weeks <-
+    
+    outbreak_data %>%
+    
+    filter(
+      outbreak_week
+    )
+  
+  
+  #=======================================================
+  # Summarize outbreak episodes
+  #=======================================================
+  
+  outbreaks <-
+    
+    outbreak_weeks %>%
+    
+    group_by(
+      admin1,
+      outbreak_id
+    ) %>%
+    
+    summarise(
+      
+      outbreak_start =
+        min(
+          week_start
+        ),
+      
+      outbreak_end =
+        max(
+          week_start
+        ),
+      
+      duration_weeks =
+        n(),
+      
+      total_cases =
+        sum(
+          cases
+        ),
+      
+      peak_cases =
+        max(
+          cases
+        ),
+      
+      mean_weekly_cases =
+        mean(
+          cases
+        ),
+      
+      .groups =
+        "drop"
+      
+    ) %>%
+    
+    mutate(
+      
+      outbreak_year =
+        year(
+          outbreak_start
+        ),
+      
+      outbreak_threshold =
+        outbreak_threshold,
+      
+      separation_weeks =
+        separation_weeks
+      
+    )
+  
+  
+  return(
+    
+    list(
+      
+      outbreak_data =
+        outbreak_data,
+      
+      outbreak_weeks =
+        outbreak_weeks,
+      
+      outbreaks =
+        outbreaks
+      
+    )
+    
+  )
+  
+}
+
+
+#=========================================================
+# Define sensitivity scenarios
+#=========================================================
+
+scenarios <-
+  
+  tibble(
+    
+    scenario =
+      c(
+        "Threshold_3",
+        "Primary_threshold_5",
+        "Threshold_10"
+      ),
+    
+    outbreak_threshold =
+      c(
+        3,
+        5,
+        10
+      ),
+    
+    separation_weeks =
+      c(
+        2,
+        2,
+        2
+      )
+    
+  )
+
+
+#=========================================================
+# Run all scenarios
+#=========================================================
+
+sensitivity_results <-
+  
+  pmap(
+    
+    scenarios,
+    
+    function(
+    
+      scenario,
+      outbreak_threshold,
+      separation_weeks
+      
+    ) {
+      
+      
+      result <-
+        
+        construct_outbreaks(
+          
+          weekly_data =
+            weekly_cases_base,
+          
+          outbreak_threshold =
+            outbreak_threshold,
+          
+          separation_weeks =
+            separation_weeks
+          
+        )
+      
+      
+      result$outbreaks <-
+        
+        result$outbreaks %>%
+        
+        mutate(
+          
+          scenario =
+            scenario
+          
+        )
+      
+      
+      return(
+        result
+      )
+      
+    }
+    
+  )
+
+
+names(
+  sensitivity_results
+) <-
+  
+  scenarios$scenario
+
+
+#=========================================================
+# Combine outbreak episodes
+#=========================================================
+
+all_sensitivity_outbreaks <-
+  
+  map_dfr(
+    
+    sensitivity_results,
+    
+    "outbreaks"
+    
+  )
+
+
+#=========================================================
+# Summary by scenario
+#=========================================================
+
+scenario_summary <-
+  
+  all_sensitivity_outbreaks %>%
+  
+  group_by(
+    scenario,
+    outbreak_threshold,
+    separation_weeks
+  ) %>%
+  
+  summarise(
+    
+    number_outbreaks =
+      n(),
+    
+    regions_with_outbreaks =
+      n_distinct(
+        admin1
+      ),
+    
+    median_duration_weeks =
+      median(
+        duration_weeks,
+        na.rm = TRUE
+      ),
+    
+    median_total_cases =
+      median(
+        total_cases,
+        na.rm = TRUE
+      ),
+    
+    median_peak_cases =
+      median(
+        peak_cases,
+        na.rm = TRUE
+      ),
+    
+    .groups =
+      "drop"
+    
+  )
+
+
+print(
+  scenario_summary
+)
+
+
+#=========================================================
+# Number of outbreaks by region
+#=========================================================
+
+scenario_by_region <-
+  
+  all_sensitivity_outbreaks %>%
+  
+  count(
+    
+    scenario,
+    admin1,
+    
+    name =
+      "number_outbreaks"
+    
+  )
+
+
+print(
+  scenario_by_region
+)
+
+
+#=========================================================
+# Save outputs
+#=========================================================
+
+write_csv(
+  
+  scenario_summary,
+  
+  "outbreak_definition_sensitivity_summary.csv"
+  
+)
+
+
+write_csv(
+  
+  all_sensitivity_outbreaks,
+  
+  "outbreak_definition_sensitivity_outbreaks.csv"
+  
+)
+
+
+write_csv(
+  
+  scenario_by_region,
+  
+  "outbreak_definition_sensitivity_by_region.csv"
+  
+)
+
+
+saveRDS(
+  
+  all_sensitivity_outbreaks,
+  
+  "outbreak_definition_sensitivity_outbreaks.rds"
+  
+)
+
+
+cat(
+  
+  "\n========================================\n"
+)
+
+cat(
+  
+  "OUTBREAK DEFINITION SENSITIVITY ANALYSIS COMPLETE\n"
+)
+
+cat(
+  
+  "========================================\n"
+)
